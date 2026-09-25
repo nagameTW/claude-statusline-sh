@@ -41,6 +41,9 @@ check 'narrow terminal drops segments from the right' \
   ctx ━━━━━───── 58%" \
   "$(COLUMNS=40 run <<<"$full")"
 
+check 'Windows path gives the folder name' '● Sonnet 5  ·  my-app' \
+  "$(run <<<'{"model":{"display_name":"Sonnet 5"},"workspace":{"project_dir":"C:\\Users\\me\\my-app"}}')"
+
 check 'invalid JSON prints nothing' '' "$(run <<<'not json')"
 
 check 'missing jq says so' 'claude-statusline: jq not found' \

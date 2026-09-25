@@ -10,7 +10,8 @@ permissions:
 
 jobs:
   test:
-    # Linux covers bash 5 and GNU date; macOS covers bash 3.2 and BSD date.
+    # Linux covers bash 5 and GNU date, macOS covers bash 3.2 and BSD date,
+    # and Windows covers Git Bash, which Claude Code uses there.
     strategy:
       fail-fast: false
       matrix:
@@ -19,12 +20,18 @@ jobs:
             bash: bash
           - os: macos-latest
             bash: /bin/bash
+          - os: windows-latest
+            bash: '"$BASH"' # the step's own Git Bash, not whatever bash is first on PATH
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    defaults:
+      run:
+        shell: bash # Git Bash on Windows; PowerShell is the default there
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Tool versions
         run: |
+          echo "step shell: $BASH"
           ${{ matrix.bash }} --version | head -n 1
           jq --version
           git --version

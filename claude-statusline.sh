@@ -39,7 +39,7 @@ fields=$(jq -r '
   @sh "model=\(.model.display_name | str | sub(" *\\(.*\\)$"; ""))",
   @sh "effort=\(.effort.level | str)",
   @sh "fast=\(.fast_mode == true)",
-  @sh "project=\(.workspace.project_dir // .cwd | str | split("/") | last // "")",
+  @sh "project=\([.workspace.project_dir // .cwd | str | splits("[/\\\\]")] | last // "")",
   @sh "dir=\(.workspace.current_dir // .cwd | str)",
   @sh "ctx=\(.context_window.used_percentage | num)",
   @sh "fh=\(.rate_limits.five_hour.used_percentage | num)",

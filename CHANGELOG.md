@@ -12,3 +12,4 @@ Notable changes to claude-statusline-sh. The format follows [Keep a Changelog](h
 - Segments drop from the right when the terminal is too narrow.
 - Git status comes from a single `git status` call, cached for 5 seconds per directory, and never takes the index lock.
 - `NO_COLOR` turns colour off.
+- Windows support through Git Bash, tested in CI. Project names come out right from Windows paths, and `.gitattributes` keeps the scripts on LF line endings.

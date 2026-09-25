@@ -46,6 +46,11 @@ Then point Claude Code at it in `~/.claude/settings.json`:
 
 It shows up the next time the status line refreshes, which happens after your next message.
 
+## Platforms
+
+- **macOS and Linux**, WSL included. CI runs the tests on the bash 3.2 that ships with macOS and on Ubuntu's bash 5.
+- **Windows**, through Git Bash. When Git Bash is installed, Claude Code runs status line commands with it, and CI runs the tests there too. Git for Windows doesn't include `jq`, so install it first with `winget install jqlang.jq`, and keep forward slashes in the command path. Without Git Bash, Claude Code falls back to PowerShell, which can't run the script.
+
 ## Narrow terminals
 
 Segments are ordered by importance. When a line doesn't fit, segments drop off from the right: the line counts go first, and the model name always stays.
