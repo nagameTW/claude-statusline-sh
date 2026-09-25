@@ -36,10 +36,19 @@ check 'start of session hides what is still unknown' \
   '● Sonnet 5  ·  plain' \
   "$(run <<<'{"model":{"display_name":"Sonnet 5"},"cwd":"'"$plain"'","context_window":{"used_percentage":null}}')"
 
-check 'narrow terminal drops segments from the right' \
-  "● Opus 5.5 high fast  ·  my-app
-  ctx ━━━━━───── 58%" \
+check 'a split pane gives up details, and a meter that needs attention keeps its reset' \
+  "● Opus 5.5 high fast · my-app · +126 -38
+  ctx 58% · 5h 71% resets 14:13 · 7d 41% · cache cold" \
+  "$(COLUMNS=60 run <<<"$full")"
+
+check 'a narrow pane still shows all three meters' \
+  "● Opus 5.5 high fast · my-app
+  ctx 58% · 5h 71% · 7d 41%" \
   "$(COLUMNS=40 run <<<"$full")"
+
+check 'a long project name is cut before it is dropped' \
+  '● Opus 5.5 · a-very-long-pro…' \
+  "$(COLUMNS=36 run <<<'{"model":{"display_name":"Opus 5.5"},"workspace":{"project_dir":"/work/a-very-long-project-name"}}')"
 
 check 'Windows path gives the folder name' '● Sonnet 5  ·  my-app' \
   "$(run <<<'{"model":{"display_name":"Sonnet 5"},"workspace":{"project_dir":"C:\\Users\\me\\my-app"}}')"

@@ -53,7 +53,7 @@ It shows up the next time the status line refreshes, which happens after your ne
 
 ## Narrow terminals
 
-Segments are ordered by importance. When a line doesn't fit, segments drop off from the right: the line counts go first, and the model name always stays.
+In a split pane, each line gives up details one at a time instead of cutting off whatever is on the right. The gaps tighten first. Then line 1 drops the line counts, the effort level, the end of a long project name, and the branch. Line 2 drops the reset times of meters that are fine, the context bar, and last the reset time of a meter that needs attention. All three percentages stay on screen down to about 35 columns.
 
 ## Options
 
