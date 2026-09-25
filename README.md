@@ -55,6 +55,8 @@ It shows up the next time the status line refreshes, which happens after your ne
 
 In a split pane, each line gives up details one at a time instead of cutting off whatever is on the right. The gaps tighten first. Then line 1 drops the line counts, the effort level, the end of a long project name, and the branch. Line 2 drops the reset times of meters that are fine, the context bar, and last the reset time of a meter that needs attention. All three percentages stay on screen down to about 35 columns.
 
+![The same status line at 80, 60 and 40 columns: details go one at a time, and the 91% weekly meter stays in red at every width](docs/narrow.png)
+
 ## Options
 
 - `NO_COLOR=1` turns colour off, following [no-color.org](https://no-color.org). Put it in the command: `"command": "NO_COLOR=1 bash \"$HOME\"/.claude/claude-statusline.sh"`.
