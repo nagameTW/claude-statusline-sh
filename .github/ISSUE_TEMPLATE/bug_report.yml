@@ -14,15 +14,15 @@ body:
     attributes:
       label: Status JSON
       description: |
-        The JSON Claude Code passed to calmline. To capture it, set your `statusLine` command to
-        `tee /tmp/calmline-input.json | bash "$HOME"/.claude/calmline.sh` for a moment, send one message, and paste the file here.
+        The JSON Claude Code passed to the script. To capture it, set your `statusLine` command to
+        `tee /tmp/statusline-input.json | bash "$HOME"/.claude/claude-statusline.sh` for a moment, send one message, and paste the file here.
         Delete anything you don't want public first, such as paths, `session_id`, `session_name` and `transcript_path`.
       render: json
   - type: textarea
     id: output
     attributes:
       label: Output
-      description: "Paste the result of: `COLUMNS=<your terminal width> bash ~/.claude/calmline.sh < /tmp/calmline-input.json | cat -v`"
+      description: "Paste the result of: `COLUMNS=<your terminal width> bash ~/.claude/claude-statusline.sh < /tmp/statusline-input.json | cat -v`"
       render: text
   - type: input
     id: environment

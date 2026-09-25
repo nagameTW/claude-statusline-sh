@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Runs calmline.sh against fixed inputs. Exits non-zero if any case fails.
+# Runs claude-statusline.sh against fixed inputs. Exits non-zero if any case fails.
 here=$(cd "$(dirname "$0")" && pwd)
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-export XDG_CACHE_HOME="$tmp/cache" TZ=UTC NO_COLOR=1 COLUMNS=200 CALMLINE_THEME=dark
+export XDG_CACHE_HOME="$tmp/cache" TZ=UTC NO_COLOR=1 COLUMNS=200 CLAUDE_STATUSLINE_THEME=dark
 failed=0
 
-run() { "$BASH" "$here/calmline.sh"; } # same bash that runs the tests
+run() { "$BASH" "$here/claude-statusline.sh"; } # same bash that runs the tests
 
 check() { # $1 case name, $2 expected, $3 actual
   if [ "$2" = "$3" ]; then
@@ -43,8 +43,8 @@ check 'narrow terminal drops segments from the right' \
 
 check 'invalid JSON prints nothing' '' "$(run <<<'not json')"
 
-check 'missing jq says so' 'calmline: jq not found' \
-  "$(PATH=/nonexistent /bin/bash "$here/calmline.sh" </dev/null)"
+check 'missing jq says so' 'claude-statusline: jq not found' \
+  "$(PATH=/nonexistent /bin/bash "$here/claude-statusline.sh" </dev/null)"
 
 repo="$tmp/repo"
 git init -q -b feat/x "$repo"
@@ -70,7 +70,7 @@ case $colored in
   *$'\033[1;33m71%'*$'\033[1;38;5;251m41%'*) check 'only meters that need attention get colour' yes yes ;;
   *) check 'only meters that need attention get colour' yes no ;;
 esac
-case $(CALMLINE_THEME=light NO_COLOR='' run <<<"$full") in
+case $(CLAUDE_STATUSLINE_THEME=light NO_COLOR='' run <<<"$full") in
   *$'\033[38;5;236mmy-app'*) check 'light theme uses a dark primary grey' yes yes ;;
   *) check 'light theme uses a dark primary grey' yes no ;;
 esac

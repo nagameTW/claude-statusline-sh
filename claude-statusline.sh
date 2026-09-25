@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2154 # model, ctx and the rest are assigned by eval
-# calmline: a two-line, low-noise status line for Claude Code.
+# claude-statusline-sh: a quiet, two-line statusline for Claude Code.
 #
 #   ● Opus 5.5 high  ·  my-app / main ↑1 ~3  ·  +126 -38
 #     ctx ━━━━━━──── 58%  ·  5h 71% resets 13:58  ·  7d 41% resets Mon 09:00
@@ -26,7 +26,7 @@ MARGIN=4   # columns left for Claude Code's own indent and padding
 GAP='  ·  ' # between segments, drawn dim
 
 if ! command -v jq >/dev/null 2>&1; then
-  printf 'calmline: jq not found\n'
+  printf 'claude-statusline: jq not found\n'
   exit 0
 fi
 
@@ -52,8 +52,8 @@ fields=$(jq -r '
 ' 2>/dev/null) || exit 0
 eval "$fields"
 
-# CALMLINE_THEME wins; otherwise follow Claude Code's own theme setting.
-theme=${CALMLINE_THEME:-$(jq -r '.theme // empty' "$HOME/.claude.json" 2>/dev/null)}
+# CLAUDE_STATUSLINE_THEME wins; otherwise follow Claude Code's own theme setting.
+theme=${CLAUDE_STATUSLINE_THEME:-$(jq -r '.theme // empty' "$HOME/.claude.json" 2>/dev/null)}
 case $theme in
   light*) PRIMARY='38;5;236' ;;
   *) PRIMARY='38;5;251' ;;
@@ -76,7 +76,7 @@ reset_time() { # $1 epoch, $2 strftime format; BSD date, then GNU date
 git_info() { # branch, commits ahead/behind and changed files for $1
   branch='' ahead=0 behind=0 dirty=0
   [ -n "$1" ] && command -v git >/dev/null 2>&1 || return
-  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/calmline" cache now stamp line oid=''
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-statusline-sh" cache now stamp line oid=''
   cache="$cache_dir/$(printf '%s' "$1" | cksum | cut -d' ' -f1)"
   now=$(date +%s)
   if [ -f "$cache" ] &&
