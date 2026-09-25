@@ -39,12 +39,13 @@ Then point Claude Code at it in `~/.claude/settings.json`:
 {
   "statusLine": {
     "type": "command",
-    "command": "bash \"$HOME\"/.claude/claude-statusline.sh"
+    "command": "bash \"$HOME\"/.claude/claude-statusline.sh",
+    "refreshInterval": 2
   }
 }
 ```
 
-It shows up the next time the status line refreshes, which happens after your next message.
+Keep `refreshInterval`. Claude Code only reruns a status line when something happens in the session, and resizing the terminal doesn't count, so without it a split pane keeps the old, wider line and Claude Code cuts it off at the edge. Rerunning every 2 seconds also picks up git changes made outside the session. Each run takes about 20 ms.
 
 ## Platforms
 
@@ -53,13 +54,15 @@ It shows up the next time the status line refreshes, which happens after your ne
 
 ## Narrow terminals
 
-Segments are ordered by importance. When a line doesn't fit, segments drop off from the right: the line counts go first, and the model name always stays.
+In a split pane, each line gives up details one at a time instead of cutting off whatever is on the right. The gaps tighten first. Then line 1 drops the line counts, the effort level, the end of a long project name, and the branch. Line 2 drops the reset times of meters that are fine, the context bar, and last the reset time of a meter that needs attention. All three percentages stay on screen down to about 35 columns. This needs the `refreshInterval` from the install step, since a resize alone doesn't rerun the script.
+
+![The same status line at 80, 60 and 40 columns: details go one at a time, and the 91% weekly meter stays in red at every width](docs/narrow.png)
 
 ## Options
 
 - `NO_COLOR=1` turns colour off, following [no-color.org](https://no-color.org). Put it in the command: `"command": "NO_COLOR=1 bash \"$HOME\"/.claude/claude-statusline.sh"`.
 - `CLAUDE_STATUSLINE_THEME=light` or `dark` picks the palette when the automatic choice is wrong (see [Colours](#colours)).
-- Git info is cached for 5 seconds per directory in `~/.cache/claude-statusline-sh`, or `$XDG_CACHE_HOME/claude-statusline-sh` if you set that. Claude Code only reruns the status line when something happens in the session. If other tools change the repo while the session sits idle, add `"refreshInterval": 5` to the `statusLine` block.
+- Git info is cached for 5 seconds per directory in `~/.cache/claude-statusline-sh`, or `$XDG_CACHE_HOME/claude-statusline-sh` if you set that.
 
 The thresholds and colours are constants at the top of `claude-statusline.sh`. The file is short, so editing it is the configuration.
 
