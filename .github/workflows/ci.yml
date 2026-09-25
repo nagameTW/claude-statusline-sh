@@ -21,7 +21,7 @@ jobs:
           - os: macos-latest
             bash: /bin/bash
           - os: windows-latest
-            bash: bash
+            bash: '"$BASH"' # the step's own Git Bash, not whatever bash is first on PATH
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     defaults:
@@ -31,6 +31,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Tool versions
         run: |
+          echo "step shell: $BASH"
           ${{ matrix.bash }} --version | head -n 1
           jq --version
           git --version
