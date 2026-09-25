@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest something the status line should show or do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        calmline stays small on purpose. A new segment has to be worth a place on a line people glance at every few seconds.
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you want to know at a glance?
+      description: Describe the moment when the current status line doesn't tell you enough.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed segment
+      description: Which field of the status JSON it reads, which line it goes on, and whether it should drop before or after the existing segments on a narrow terminal.

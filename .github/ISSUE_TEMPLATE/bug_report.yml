@@ -1,0 +1,34 @@
+name: Bug report
+description: The status line shows something wrong, or nothing at all.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected to see.
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Status JSON
+      description: |
+        The JSON Claude Code passed to calmline. To capture it, set your `statusLine` command to
+        `tee /tmp/calmline-input.json | bash "$HOME"/.claude/calmline.sh` for a moment, send one message, and paste the file here.
+        Delete anything you don't want public first, such as paths, `session_id`, `session_name` and `transcript_path`.
+      render: json
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: "Paste the result of: `COLUMNS=<your terminal width> bash ~/.claude/calmline.sh < /tmp/calmline-input.json | cat -v`"
+      render: text
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, terminal (and tmux if you use it), `bash --version`, `jq --version`, `claude --version`
+      placeholder: macOS 26, iTerm2 3.6, bash 3.2.57, jq 1.7.1, Claude Code 2.1.260
+    validations:
+      required: true

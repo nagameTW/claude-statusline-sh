@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2154 # model, ctx and the rest are assigned by eval
+# calmline: a two-line, low-noise status line for Claude Code.
+#
+#   ● Opus 5.5 high  ·  my-app / main ↑1 ~3  ·  +126 -38
+#     ctx ━━━━━━──── 58%  ·  5h 71% resets 13:58  ·  7d 41% resets Mon 09:00
+#
+# Claude Code pipes session JSON on stdin. Segments are ordered by
+# priority: when a line is wider than the terminal, the rightmost ones
+# drop first. Needs jq; git is optional. Set NO_COLOR to turn colour off.
+
+# Colour carries state, not decoration: a meter stays grey until it
+# needs attention. Grey comes in three steps. Claude Code draws the whole
+# status line in its own mid grey and maps "default colour" back to it,
+# so that grey is the middle step (labels), dim is the lowest (structure
+# words, separators), and the top step (names, values) needs an explicit
+# colour that depends on the theme. State colours are the terminal's own
+# 16, so they follow its palette.
+ACCENT='38;5;173' BOLD='1' MUTED='2'
+GREEN='32' YELLOW='33' RED='31' BLUE='34'
+
+WARN_AT=60 # a meter turns yellow here
+BAD_AT=80  # a meter turns red here
+GIT_TTL=5  # seconds a cached git lookup stays fresh
+MARGIN=4   # columns left for Claude Code's own indent and padding
+GAP='  ·  ' # between segments, drawn dim
+
+if ! command -v jq >/dev/null 2>&1; then
+  printf 'calmline: jq not found\n'
+  exit 0
+fi
+
+# One jq call for every field. @sh quotes each value and every value is
+# a scalar, so the eval below only ever assigns variables.
+fields=$(jq -r '
+  def str: if . == null then "" else tostring end;
+  def num: if type == "number" then floor else "" end;
+  def int: if type == "number" then floor else 0 end;
+  @sh "model=\(.model.display_name | str | sub(" *\\(.*\\)$"; ""))",
+  @sh "effort=\(.effort.level | str)",
+  @sh "fast=\(.fast_mode == true)",
+  @sh "project=\(.workspace.project_dir // .cwd | str | split("/") | last // "")",
+  @sh "dir=\(.workspace.current_dir // .cwd | str)",
+  @sh "ctx=\(.context_window.used_percentage | num)",
+  @sh "fh=\(.rate_limits.five_hour.used_percentage | num)",
+  @sh "fh_reset=\(.rate_limits.five_hour.resets_at | num)",
+  @sh "sd=\(.rate_limits.seven_day.used_percentage | num)",
+  @sh "sd_reset=\(.rate_limits.seven_day.resets_at | num)",
+  @sh "cache_cold=\(.prompt_cache.caching_observed == true and .prompt_cache.warm == false)",
+  @sh "added=\(.cost.total_lines_added | int)",
+  @sh "removed=\(.cost.total_lines_removed | int)"
+' 2>/dev/null) || exit 0
+eval "$fields"
+
+# CALMLINE_THEME wins; otherwise follow Claude Code's own theme setting.
+theme=${CALMLINE_THEME:-$(jq -r '.theme // empty' "$HOME/.claude.json" 2>/dev/null)}
+case $theme in
+  light*) PRIMARY='38;5;236' ;;
+  *) PRIMARY='38;5;251' ;;
+esac
+
+# ── helpers ──────────────────────────────────────────────────────────
+# They set globals (c, b, t, branch, dirty) instead of printing, which
+# saves a subshell per call; the script runs on every session event.
+
+level_color() { # colour for a used percentage; none while it is fine
+  if [ "$1" -ge "$BAD_AT" ]; then c=$RED
+  elif [ "$1" -ge "$WARN_AT" ]; then c=$YELLOW
+  else c=''; fi
+}
+
+reset_time() { # $1 epoch, $2 strftime format; BSD date, then GNU date
+  t=$(LC_ALL=C date -r "$1" +"$2" 2>/dev/null || LC_ALL=C date -d "@$1" +"$2" 2>/dev/null)
+}
+
+git_info() { # branch, commits ahead/behind and changed files for $1
+  branch='' ahead=0 behind=0 dirty=0
+  [ -n "$1" ] && command -v git >/dev/null 2>&1 || return
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/calmline" cache now stamp line oid=''
+  cache="$cache_dir/$(printf '%s' "$1" | cksum | cut -d' ' -f1)"
+  now=$(date +%s)
+  if [ -f "$cache" ] &&
+    { read -r stamp; read -r branch; read -r ahead; read -r behind; read -r dirty; } <"$cache" &&
+    [ $((now - ${stamp:-0})) -lt "$GIT_TTL" ]; then
+    return
+  fi
+  branch='' ahead=0 behind=0 dirty=0
+  # One call gives everything. --no-optional-locks: never take index.lock
+  # away from a real git command running at the same time.
+  while IFS= read -r line; do
+    case $line in
+      '# branch.head '*) branch=${line#'# branch.head '} ;;
+      '# branch.oid '*) oid=${line#'# branch.oid '} ;;
+      '# branch.ab '*)
+        read -r ahead behind <<<"${line#'# branch.ab '}"
+        ahead=${ahead#+} behind=${behind#-}
+        ;;
+      '#'*) ;;
+      *) dirty=$((dirty + 1)) ;;
+    esac
+  done < <(git --no-optional-locks -C "$1" status --porcelain=v2 --branch 2>/dev/null)
+  [ "$branch" = '(detached)' ] && branch=${oid:0:7}
+  # A cache that cannot be written only costs speed, so failures are ignored.
+  mkdir -p "$cache_dir" 2>/dev/null &&
+    printf '%s\n' "$now" "$branch" "$ahead" "$behind" "$dirty" >"$cache.$$" 2>/dev/null &&
+    mv -f "$cache.$$" "$cache" 2>/dev/null
+}
+
+# A segment is built from styled pieces. The plain copy is kept next to
+# it so render() can measure width without stripping escape codes.
+seg_txt='' seg_raw=''
+segs_txt=() segs_raw=()
+
+piece() { # $1 SGR code (empty for none), $2 text
+  seg_raw+=$2
+  if [ -z "$1" ] || [ -n "${NO_COLOR:-}" ]; then
+    seg_txt+=$2
+  else
+    seg_txt+=$'\033['"$1m$2"$'\033[0m'
+  fi
+}
+
+push() { # close the segment being built
+  [ -z "$seg_raw" ] && return
+  segs_txt+=("$seg_txt")
+  segs_raw+=("$seg_raw")
+  seg_txt='' seg_raw=''
+}
+
+render() { # $1 indent; print as many segments as fit, keeping the first
+  local indent=${1:-} max=$((${COLUMNS:-120} - MARGIN - ${#1})) n=${#segs_raw[@]} width i out=''
+  while [ "$n" -gt 1 ]; do
+    width=$(((n - 1) * ${#GAP}))
+    for ((i = 0; i < n; i++)); do width=$((width + ${#segs_raw[i]})); done
+    [ "$width" -le "$max" ] && break
+    n=$((n - 1))
+  done
+  local gap=$GAP
+  # Claude Code trims plain leading spaces, so the indent goes out styled.
+  if [ -z "${NO_COLOR:-}" ]; then
+    gap=$'\033['"${MUTED}m$GAP"$'\033[0m'
+    [ -n "$indent" ] && indent=$'\033['"${MUTED}m$indent"$'\033[0m'
+  fi
+  for ((i = 0; i < n; i++)); do
+    [ "$i" -gt 0 ] && out+=$gap
+    out+=${segs_txt[i]}
+  done
+  [ -n "$out" ] && printf '%s%s\n' "$indent" "$out"
+  segs_txt=() segs_raw=()
+}
+
+bar() { # 10-cell track: heavy line for the used part, thin for the rest
+  local filled=$(($1 / 10)) i used='' rest=''
+  [ "$filled" -gt 10 ] && filled=10
+  for ((i = 0; i < 10; i++)); do
+    if [ "$i" -lt "$filled" ]; then used+='━'; else rest+='─'; fi
+  done
+  piece "${c:-$PRIMARY}" "$used"
+  piece "$MUTED" "$rest"
+}
+
+quota() { # $1 label, $2 used %, $3 reset epoch, $4 reset clock format
+  [ -z "$2" ] && return
+  level_color "$2"
+  piece '' "$1 "
+  piece "$BOLD;${c:-$PRIMARY}" "$2%"
+  if [ -n "$3" ]; then
+    reset_time "$3" "$4"
+    if [ -n "$t" ]; then
+      piece "$MUTED" ' resets '
+      piece '' "$t"
+    fi
+  fi
+  push
+}
+
+# ── line 1: model, project and branch, lines changed ─────────────────
+piece "$ACCENT" '● '
+piece "$BOLD;$ACCENT" "$model"
+[ -n "$effort" ] && piece '' " $effort"
+[ "$fast" = true ] && piece "$YELLOW" ' fast'
+push
+
+piece "$PRIMARY" "$project"
+git_info "$dir"
+if [ -n "$branch" ]; then
+  piece "$MUTED" ' / '
+  piece "$BLUE" "$branch"
+  [ "$ahead" -gt 0 ] 2>/dev/null && piece "$YELLOW" " ↑$ahead"
+  [ "$behind" -gt 0 ] 2>/dev/null && piece "$YELLOW" " ↓$behind"
+  [ "$dirty" -gt 0 ] 2>/dev/null && piece "$YELLOW" " ~$dirty"
+fi
+push
+
+if [ "$added" -gt 0 ] || [ "$removed" -gt 0 ]; then
+  piece "$GREEN" "+$added"
+  piece "$RED" " -$removed"
+  push
+fi
+render
+
+# ── line 2: context, usage limits, prompt cache ──────────────────────
+# Indented two columns so it lines up under the model name.
+if [ -n "$ctx" ]; then
+  level_color "$ctx"
+  piece '' 'ctx '
+  bar "$ctx"
+  piece "$BOLD;${c:-$PRIMARY}" " $ctx%"
+  push
+fi
+quota 5h "$fh" "$fh_reset" '%H:%M'
+quota 7d "$sd" "$sd_reset" '%a %H:%M'
+if [ "$cache_cold" = true ]; then
+  piece "$YELLOW" 'cache cold'
+  push
+fi
+render '  '
+
+# render's last test fails when a line is empty; that must not turn
+# into a non-zero exit, which blanks the whole status line.
+exit 0
