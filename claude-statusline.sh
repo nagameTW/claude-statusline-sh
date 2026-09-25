@@ -32,6 +32,18 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 0
 fi
 
+# Widths are counted in characters, which takes a UTF-8 locale. Git Bash
+# and bare containers often start in C, where "●" counts as three and a
+# cut name can end mid-character. Assigning LC_ALL makes bash reload it.
+probe='●'
+if [ "${#probe}" -ne 1 ]; then
+  for loc in C.UTF-8 en_US.UTF-8; do
+    { LC_ALL=$loc; } 2>/dev/null
+    probe='●'
+    [ "${#probe}" -eq 1 ] && break
+  done
+fi
+
 # One jq call for every field. @sh quotes each value and every value is
 # a scalar, so the eval below only ever assigns variables.
 fields=$(jq -r '

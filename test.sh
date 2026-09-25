@@ -53,6 +53,10 @@ check 'a long project name is cut before it is dropped' \
 check 'Windows path gives the folder name' '● Sonnet 5  ·  my-app' \
   "$(run <<<'{"model":{"display_name":"Sonnet 5"},"workspace":{"project_dir":"C:\\Users\\me\\my-app"}}')"
 
+check 'widths are counted in characters even under the C locale' \
+  '● Opus 5.5 · a-very-long-pro…' \
+  "$(LC_ALL=C LANG=C COLUMNS=36 run <<<'{"model":{"display_name":"Opus 5.5"},"workspace":{"project_dir":"/work/a-very-long-project-name"}}')"
+
 check 'invalid JSON prints nothing' '' "$(run <<<'not json')"
 
 check 'missing jq says so' 'claude-statusline: jq not found' \
