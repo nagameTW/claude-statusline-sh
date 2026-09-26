@@ -13,7 +13,9 @@ Colour means state here. A usage meter stays grey while it's fine, turns yellow 
 
 ## What it shows
 
-**Line 1:** the model and its effort level, `fast` when fast mode is on, the project, the git branch, and the lines added and removed this session.
+**Line 1:** the model and its effort level, `fast` when fast mode is on, the project, the git branch, and the lines Claude has added and removed this session.
+
+That line count comes from Claude Code, and it won't match `git diff`. It covers only what Claude changed with its edit tools, so shell commands and your own edits don't show up. It adds up every edit, so a line changed twice counts twice, and it keeps going after you commit.
 
 Next to the branch, `↑2` means two commits not pushed yet, `↓1` one commit to pull, and `~3` three changed files, untracked ones included.
 
