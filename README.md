@@ -24,7 +24,7 @@ Next to the branch, `↑2` means two commits to push, `↓1` means one commit to
 
 - bash 3.2 or newer. The `/bin/bash` that macOS ships works.
 - `jq`.
-- macOS, Linux or WSL. On Windows, use Git Bash ([platforms](docs/platforms.md)).
+- macOS, Linux, WSL, or Windows with Git Bash ([platforms](docs/platforms.md)).
 
 ## Install
 
@@ -53,7 +53,7 @@ Keep `refreshInterval`. Claude Code reruns a status line only when something hap
 - `NO_COLOR=1` turns colour off.
 - `CLAUDE_STATUSLINE_THEME=light` or `dark` sets the palette.
 
-Set either one in the `command` line. [Configuration](docs/configuration.md) has the other options, the colours, and the behavior in narrow terminals.
+Put either one before `bash` in the `command` line. [Configuration](docs/configuration.md) has the other options, the colours, and the behavior in narrow terminals.
 
 ## Repository structure
 
